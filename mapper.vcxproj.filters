@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="kit">
+      <UniqueIdentifier>{a1e1c100-0001-4000-8000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="load">
+      <UniqueIdentifier>{a1e1c100-0001-4000-8000-000000000002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core">
+      <UniqueIdentifier>{a1e1c100-0001-4000-8000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="boot">
+      <UniqueIdentifier>{a1e1c100-0001-4000-8000-000000000004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="boot\residual">
+      <UniqueIdentifier>{a1e1c100-0001-4000-8000-000000000005}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{a1e1c100-0001-4000-8000-000000000006}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="vendor">
+      <UniqueIdentifier>{a1e1c100-0001-4000-8000-000000000007}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="entry.cpp">
+      <Filter>kit</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="kit\prelude.hpp">
+      <Filter>kit</Filter>
+    </ClInclude>
+    <ClInclude Include="kit\symbols.hpp">
+      <Filter>kit</Filter>
+    </ClInclude>
+    <ClInclude Include="load\image.hpp">
+      <Filter>load</Filter>
+    </ClInclude>
+    <ClInclude Include="load\pe.hpp">
+      <Filter>load</Filter>
+    </ClInclude>
+    <ClInclude Include="load\cave.hpp">
+      <Filter>load</Filter>
+    </ClInclude>
+    <ClInclude Include="load\payload.hpp">
+      <Filter>load</Filter>
+    </ClInclude>
+    <ClInclude Include="load\import.hpp">
+      <Filter>load</Filter>
+    </ClInclude>
+    <ClInclude Include="core\tables.hpp">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\phys.hpp">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\gate.hpp">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\krnl.hpp">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ntexp.hpp">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ntexp.inl.hpp">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\blob.hpp">
+      <Filter>boot</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\scm.hpp">
+      <Filter>boot</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\bringup.hpp">
+      <Filter>boot</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\device.hpp">
+      <Filter>boot</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\snap.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\user.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\unload.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\cache.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\bucket.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\filter.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\sweep.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="boot\residual\scan.hpp">
+      <Filter>boot\residual</Filter>
+    </ClInclude>
+    <ClInclude Include="common\halt.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="common\util.hpp">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\ia32.hpp">
+      <Filter>vendor</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="common\log.hpp">
+      <Filter>common</Filter>
+    </None>
+  </ItemGroup>
+</Project>
