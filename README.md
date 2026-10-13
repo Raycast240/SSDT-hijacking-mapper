@@ -1,81 +1,80 @@
-# mapper
+# ezzz mapper
 
-A Windows kernel driver mapper that loads unsigned drivers by executing them inside ntoskrnl.exe's address space via SSDT hijacking.
+A Windows kernel driver mapper for loading unsigned drivers through SSDT hijacking inside `ntoskrnl.exe`.
 
 ## How it works
+The mapper uses a vulnerable driver for physical memory read/write. The default target is `EBIoDispatch`.
 
-The mapper requires a vulnerable driver exposing physical memory read/write (the default target is `EBIoDispatch`). It performs the following steps:
+1. **Service installation** — Installs the vulnerable driver as a kernel service under a randomized name and enables `SeLoadDriverPrivilege`.
 
-1. **Service installation** — Installs the vulnerable driver as a kernel service with a randomized name, enabling `SeLoadDriverPrivilege`.
+2. **Symbol resolution** — Uses PDB parsing through `g_pdb` to find the required kernel symbols, including `PiDDBLock`, `PiDDBCacheTable`, `KeServiceDescriptorTable`, and the required memory management functions and structure offsets.
 
-2. **Symbol resolution** — Uses PDB parsing (via `g_pdb`) to locate critical kernel symbols: `PiDDBLock`, `PiDDBCacheTable`, `KeServiceDescriptorTable`, `ExAcquireResourceExclusiveLite`, `ExReleaseResourceLite`, `RtlLookupElementGenericTableAvl`, `RtlDeleteElementGenericTableAvl`, plus various `Mm*` and `EPROCESS`/`KPROCESS`/`MMPFN` offsets.
+3. **Paging setup** — Sets up virtual-to-physical address translation using `MmGetPhysicalAddress`.
 
-3. **Paging setup** — Establishes a paging context to translate virtual addresses to physical addresses using `MmGetPhysicalAddress`.
+4. **SSDT hijack** — Finds `NtWriteVirtualMemory` in `KeServiceDescriptorTable` and `KeServiceDescriptorTableShadow` and redirects the relevant SSDT entry. The hook is checked before use and restored afterward.
 
-4. **SSDT hijack** — Locates `NtWriteVirtualMemory` in both `KeServiceDescriptorTable` and `KeServiceDescriptorTableShadow`. Overwrites the SSDT entry to redirect execution to a controlled kernel address. The hijack is verified before and after each use, with automatic restoration on teardown.
+5. **Cave allocation** — Allocates pages inside the `ntoskrnl.exe` image range using `MmAllocateIndependentPages`. The driver image must fit in the allocated region.
 
-5. **Cave allocation** — Allocates a large-page memory region inside ntoskrnl.exe's image range using `MmAllocateIndependentPages`. The target driver image must fit within this range.
+6. **Image preparation** — Parses the target PE, applies relocations, resolves imports and delayed imports, and prepares the sections for mapping.
 
-6. **Image preparation** — Parses the target PE, applies base relocations, resolves imports and delayed imports against loaded kernel modules, and copies sections into a local buffer.
+7. **Physical write** — Writes the prepared image page by page through the vulnerable driver's physical memory interface.
 
-7. **Physical write** — Writes the prepared image page-by-page to the allocated cave via the vulnerable driver's physical memory write primitive.
+8. **Entry execution** — Creates an entry context with the resolved symbols and offsets, then calls `DriverEntry` through the hooked syscall. The original SSDT entry is restored afterward.
 
-8. **Entry execution** — Builds an entry context containing resolved kernel symbols and structure offsets, allocates it in independent pages, then invokes the driver's `DriverEntry` through the hijacked `NtWriteVirtualMemory` syscall. The SSDT is restored immediately after.
-
-9. **Cleanup** — Restores SSDT entries, frees allocated pages, unloads the vulnerable driver service.
+9. **Cleanup** — Restores any remaining SSDT changes, frees allocated pages, and unloads the vulnerable driver service.
 
 ## Requirements
 
 - Windows 10 1903+ (tested up to 24H2/25H2)
-- A vulnerable driver providing physical memory read/write via IOCTL (default: `EBIoDispatch`, IOCTLs `0x22E008` / `0x22E00C`)
-- PDBs for the target OS build (ntoskrnl.exe, optionally ntdll.dll)
+- Vulnerable driver with physical memory read/write support
+- PDBs for the target Windows build
 - Administrator privileges
 
 ## Building
 
-Open `mapper.slnx` in Visual Studio 2022. The project is configured for x64 Release. Dependencies are included in `vendor/`.
+Open `mapper.slnx` in Visual Studio 2022 and build x64 Release. Dependencies are included in `vendor/`.
 
 ## Usage
 
-```
+```cmd id="t9l4ex"
 mapper.exe <path_to_driver.sys>
 ```
 
-The driver must be a valid PE32+ image with relocations (not stripped). Imports must resolve to currently loaded kernel modules.
+The driver must be a PE32+ image with relocations. Imports must resolve to loaded kernel modules.
 
 ## Supported OS builds
 
-- 19041 (2004) through 19045 (22H2): classic inline page-table decode
-- 22000 (21H2) through 26100 (24H2/25H2): buddy callable (`MiGetPageTablePfnBuddyRaw`) or inline PID-safe decode
+- 19041–19045: classic inline page-table decoding
+- 22000–26100: `MiGetPageTablePfnBuddyRaw` or inline PID-safe decoding
 
-The mapper detects the OS build and selects the appropriate page-table walk strategy automatically.
+The mapper detects the Windows build and picks the appropriate method.
 
 ## Architecture overview
 
-```
-entry.cpp                 — main flow, orchestration
+```text id="7zqjhm"
+entry.cpp                 Main flow
 core/
-  gate.hpp                — SSDT hijack, syscall invocation, slot encoding/decoding
-  phys.hpp                — VA to PA translation via MmGetPhysicalAddress
-  krnl.hpp                — kernel module enumeration, export resolution
-  ntexp.hpp               — PDB symbol/structure parsing
+  gate.hpp                SSDT hook and syscall handling
+  phys.hpp                VA to PA translation
+  krnl.hpp                Kernel modules and exports
+  ntexp.hpp               PDB parsing and structure offsets
 load/
-  payload.hpp             — PE parsing, section/reloc/import access
-  image.hpp               — mapping logic: relocate, import, section copy, physical write
-  import.hpp              — buddy callable resolution, inline decode patterns
+  payload.hpp             PE parsing
+  image.hpp               Mapping, relocations and physical writes
+  import.hpp              Import resolution and page-table decoding
 boot/
-  bringup.hpp             — vulnerable driver service install
-  device.hpp              — driver communication, physical memory map/unmap, syscall stub
-  residual/               — post-load cleanup (PiDDB cache, unload, sweep, snap, filter, cache)
+  bringup.hpp             Driver service setup
+  device.hpp              Device communication and memory access
+  residual/               Cleanup routines
 ```
 
 ## Notes
 
-- The SSDT hijack targets `NtWriteVirtualMemory` specifically because its syscall stub is accessible from user mode and its SSDT slot is reliably locatable across builds.
-- All kernel memory operations go through the vulnerable driver's physical memory primitives; no direct kernel shellcode execution occurs outside the hijacked syscall.
-- The mapper avoids pool allocations for the mapped image, using large pages inside ntoskrnl to reduce detection surface.
-- Symbol resolution depends on PDB availability; missing symbols will cause the mapper to abort with a log message.
+- `NtWriteVirtualMemory` is used as the SSDT hook target.
+- Kernel memory access goes through the vulnerable driver's physical memory interface.
+- The mapped image uses independent pages instead of pool allocations.
+- Missing symbols or unresolved imports cause the mapper to abort.
 
 ## License
 
-No license. Use at your own risk.
+No license specified.
